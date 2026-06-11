@@ -2,12 +2,7 @@
 
 基于 Android + Jetpack Compose 的单列广告信息流应用。
 
-## 快速开始
-
-```bash
-./gradlew assembleDebug
-```
-
+temp:api key需要自己填项目里面的我已经在中转站删掉了
 ## 文档
 
 详细项目文档请见 [docs/PROJECT.md](docs/PROJECT.md)
