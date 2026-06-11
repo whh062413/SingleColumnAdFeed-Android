@@ -16,7 +16,11 @@ public class AiInsightGenerator {
     private final String apiKey;
 
     public AiInsightGenerator(String apiKey) {
-        this.apiService = new AiApiService();
+        this(apiKey, "https://api.openai.com/v1/chat/completions", "gpt-4o-mini");
+    }
+
+    public AiInsightGenerator(String apiKey, String apiUrl, String model) {
+        this.apiService = new AiApiService(apiUrl, model);
         this.apiKey = apiKey;
     }
 

@@ -9,6 +9,7 @@ public interface FeedRepository {
     List<FeedItem> getAllItems();
     List<FeedItem> getItemsByCategory(FeedCategory category);
     List<FeedItem> loadMore(int page, int pageSize, FeedCategory category);
+    void reloadData();
     void toggleLike(String feedId);
     void toggleCollect(String feedId);
     FeedItem getItemById(String feedId);

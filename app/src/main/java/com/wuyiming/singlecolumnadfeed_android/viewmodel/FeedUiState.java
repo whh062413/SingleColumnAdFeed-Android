@@ -13,6 +13,8 @@ public class FeedUiState {
     private final FeedCategory currentCategory;
     private final String error;
     private final boolean hasMore;
+    private final boolean isSearching;
+    private final boolean isSearchMode;
 
     private FeedUiState(Builder builder) {
         this.loading = builder.loading;
@@ -22,6 +24,8 @@ public class FeedUiState {
         this.currentCategory = builder.currentCategory;
         this.error = builder.error;
         this.hasMore = builder.hasMore;
+        this.isSearching = builder.isSearching;
+        this.isSearchMode = builder.isSearchMode;
     }
 
     public boolean isLoading() { return loading; }
@@ -31,6 +35,8 @@ public class FeedUiState {
     public FeedCategory getCurrentCategory() { return currentCategory; }
     public String getError() { return error; }
     public boolean hasMore() { return hasMore; }
+    public boolean isSearching() { return isSearching; }
+    public boolean isSearchMode() { return isSearchMode; }
 
     public static class Builder {
         private boolean loading;
@@ -40,6 +46,8 @@ public class FeedUiState {
         private FeedCategory currentCategory = FeedCategory.RECOMMEND;
         private String error;
         private boolean hasMore = true;
+        private boolean isSearching;
+        private boolean isSearchMode;
 
         public Builder loading(boolean loading) { this.loading = loading; return this; }
         public Builder refreshing(boolean refreshing) { this.refreshing = refreshing; return this; }
@@ -48,6 +56,8 @@ public class FeedUiState {
         public Builder currentCategory(FeedCategory category) { this.currentCategory = category; return this; }
         public Builder error(String error) { this.error = error; return this; }
         public Builder hasMore(boolean hasMore) { this.hasMore = hasMore; return this; }
+        public Builder isSearching(boolean isSearching) { this.isSearching = isSearching; return this; }
+        public Builder isSearchMode(boolean isSearchMode) { this.isSearchMode = isSearchMode; return this; }
 
         public FeedUiState build() { return new FeedUiState(this); }
     }

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class DefaultFeedRepository implements FeedRepository {
-    private final List<FeedItem> allItems;
+    private List<FeedItem> allItems;
     private final InteractionStore interactionStore;
 
     private static volatile DefaultFeedRepository instance;
@@ -34,13 +34,18 @@ public class DefaultFeedRepository implements FeedRepository {
         syncLikedState();
     }
 
+    @Override
+    public void reloadData() {
+        allItems = MockDataSource.generateFeedItems(100);
+        syncLikedState();
+    }
+
     private void syncLikedState() {
         for (FeedItem item : allItems) {
-            if (interactionStore.isLiked(item.getId())) {
-                item.setLiked(true);
-            }
-            if (interactionStore.isCollected(item.getId())) {
-                item.setCollected(true);
+            String id = item.getId();
+            if (interactionStore.hasInteraction(id)) {
+                item.setLiked(interactionStore.isLiked(id));
+                item.setCollected(interactionStore.isCollected(id));
             }
         }
     }
@@ -68,10 +73,12 @@ public class DefaultFeedRepository implements FeedRepository {
 
     @Override
     public void toggleLike(String feedId) {
-        interactionStore.setLiked(feedId, !interactionStore.isLiked(feedId));
+        boolean newLiked = !interactionStore.isLiked(feedId);
+        interactionStore.setLiked(feedId, newLiked);
+
         for (FeedItem item : allItems) {
             if (item.getId().equals(feedId)) {
-                item.setLiked(interactionStore.isLiked(feedId));
+                item.setLiked(newLiked);
                 break;
             }
         }
@@ -79,10 +86,12 @@ public class DefaultFeedRepository implements FeedRepository {
 
     @Override
     public void toggleCollect(String feedId) {
-        interactionStore.setCollected(feedId, !interactionStore.isCollected(feedId));
+        boolean newCollected = !interactionStore.isCollected(feedId);
+        interactionStore.setCollected(feedId, newCollected);
+
         for (FeedItem item : allItems) {
             if (item.getId().equals(feedId)) {
-                item.setCollected(interactionStore.isCollected(feedId));
+                item.setCollected(newCollected);
                 break;
             }
         }

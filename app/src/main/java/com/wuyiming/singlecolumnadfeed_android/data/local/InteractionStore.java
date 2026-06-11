@@ -1,18 +1,24 @@
 package com.wuyiming.singlecolumnadfeed_android.data.local;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
-import java.util.HashSet;
+import com.wuyiming.singlecolumnadfeed_android.data.local.db.InteractionDao;
+import com.wuyiming.singlecolumnadfeed_android.data.local.db.InteractionDatabase;
+
 import java.util.Set;
 
+/**
+ * Facade over the SQLite-backed interaction store.
+ * Provides a simple API for checking and setting like/collect state.
+ *
+ * Persistence model: each feed item''s interaction state lives as a row
+ * in the SQLite interactions table. When a row exists, it represents the
+ * user''s explicit choice (like or unlike, collect or uncollect).
+ * When no row exists, the item''s initial mock state is used as default.
+ */
 public class InteractionStore {
-    private static final String PREF_NAME = "ad_feed_interactions";
-    private static final String KEY_LIKED_IDS = "liked_ids";
-    private static final String KEY_COLLECTED_IDS = "collected_ids";
-    private static final String KEY_EXPOSED_IDS = "exposed_ids";
 
-    private final SharedPreferences prefs;
+    private final InteractionDao dao;
 
     private static volatile InteractionStore instance;
 
@@ -28,48 +34,54 @@ public class InteractionStore {
     }
 
     private InteractionStore(Context context) {
-        prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        InteractionDatabase db = InteractionDatabase.getInstance(context);
+        this.dao = new InteractionDao(db);
     }
 
+    // ---- Existence ----
+
+    /**
+     * Whether the user has explicitly interacted with this item.
+     * If false, the item''s initial mock state should be retained.
+     */
+    public boolean hasInteraction(String feedId) {
+        return dao.hasInteraction(feedId);
+    }
+
+    // ---- Likes ----
+
     public boolean isLiked(String feedId) {
-        return prefs.getStringSet(KEY_LIKED_IDS, new HashSet<>()).contains(feedId);
+        return dao.isLiked(feedId);
     }
 
     public void setLiked(String feedId, boolean liked) {
-        Set<String> ids = new HashSet<>(prefs.getStringSet(KEY_LIKED_IDS, new HashSet<>()));
-        if (liked) {
-            ids.add(feedId);
-        } else {
-            ids.remove(feedId);
-        }
-        prefs.edit().putStringSet(KEY_LIKED_IDS, ids).apply();
+        dao.setLiked(feedId, liked);
     }
 
+    // ---- Collections ----
+
     public boolean isCollected(String feedId) {
-        return prefs.getStringSet(KEY_COLLECTED_IDS, new HashSet<>()).contains(feedId);
+        return dao.isCollected(feedId);
     }
 
     public void setCollected(String feedId, boolean collected) {
-        Set<String> ids = new HashSet<>(prefs.getStringSet(KEY_COLLECTED_IDS, new HashSet<>()));
-        if (collected) {
-            ids.add(feedId);
-        } else {
-            ids.remove(feedId);
-        }
-        prefs.edit().putStringSet(KEY_COLLECTED_IDS, ids).apply();
+        dao.setCollected(feedId, collected);
     }
 
-    public boolean isExposed(String feedId) {
-        return prefs.getStringSet(KEY_EXPOSED_IDS, new HashSet<>()).contains(feedId);
+    // ---- Bulk ----
+
+    public Set<String> getAllLikedIds() {
+        return dao.getAllLikedIds();
     }
 
-    public void setExposed(String feedId) {
-        Set<String> ids = new HashSet<>(prefs.getStringSet(KEY_EXPOSED_IDS, new HashSet<>()));
-        ids.add(feedId);
-        prefs.edit().putStringSet(KEY_EXPOSED_IDS, ids).apply();
+    public Set<String> getAllCollectedIds() {
+        return dao.getAllCollectedIds();
     }
+
+    // ---- Utilities ----
 
     public void clear() {
-        prefs.edit().clear().apply();
+        InteractionDatabase.getInstance(null).getWritableDatabase()
+                .execSQL("DELETE FROM " + InteractionDatabase.getTableName());
     }
 }
