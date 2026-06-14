@@ -59,7 +59,7 @@ public final class AiConfig {
 
 ### 2. 构建 & 安装
 
-`ash
+`bash
 ./gradlew assembleDebug    # 构建 Debug APK
 ./gradlew installDebug     # 安装到已连接设备
 `
