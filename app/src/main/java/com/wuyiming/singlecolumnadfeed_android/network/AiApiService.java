@@ -29,9 +29,7 @@ public class AiApiService {
         this.model = model;
     }
 
-    /**
-     * General-purpose raw API call. Returns the AI's text response content.
-     */
+    @SuppressWarnings("unchecked")
     public String callRawApi(String systemPrompt, String userMessage, String apiKey) throws IOException {
         Map<String, Object> body = Map.of(
                 "model", model,
@@ -55,7 +53,9 @@ public class AiApiService {
             }
 
             String responseBody = response.body() != null ? response.body().string() : "";
-            Map<String, Object> responseMap = gson.fromJson(responseBody, Map.class);
+            Type mapType = new TypeToken<Map<String, Object>>(){}.getType();
+            Map<String, Object> responseMap = gson.fromJson(responseBody, mapType);
+
             List<Map<String, Object>> choices = (List<Map<String, Object>>) responseMap.get("choices");
             if (choices == null || choices.isEmpty()) {
                 throw new IOException("AI API returned empty choices");
@@ -67,11 +67,14 @@ public class AiApiService {
     }
 
     public AdInsight callCloudApi(String title, String description, String apiKey) throws IOException {
-        String systemPrompt = "你是广告内容分析专家。根据广告标题和描述，生成一条中文摘要（不超过50字）和3-5个标签。"
-                + "返回格式为JSON: {\"summary\": \"...\", \"tags\": [\"...\"]}";
+        String systemPrompt = "\u4f60\u662f\u5e7f\u544a\u5185\u5bb9\u5206\u6790\u4e13\u5bb6\u3002"
+                + "\u6839\u636e\u5e7f\u544a\u6807\u9898\u548c\u63cf\u8ff0\uff0c"
+                + "\u751f\u6210\u4e00\u6761\u4e2d\u6587\u6458\u8981\uff08\u4e0d\u8d85\u8fc750\u5b57\uff09"
+                + "\u548c3-5\u4e2a\u6807\u7b7e\u3002"
+                + "\u8fd4\u56de\u683c\u5f0f\u4e3aJSON: {\"summary\": \"...\", \"tags\": [\"...\"]}";
 
         String raw = callRawApi(systemPrompt,
-                "广告标题：" + title + "\n广告描述：" + description, apiKey);
+                "\u5e7f\u544a\u6807\u9898\uff1a" + title + "\n\u5e7f\u544a\u63cf\u8ff0\uff1a" + description, apiKey);
 
         Type insightType = new TypeToken<AdInsight>(){}.getType();
         return gson.fromJson(raw, insightType);
