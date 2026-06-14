@@ -5,14 +5,11 @@ import com.wuyiming.singlecolumnadfeed_android.data.model.FeedCategory;
 import com.wuyiming.singlecolumnadfeed_android.data.model.FeedItem;
 import com.wuyiming.singlecolumnadfeed_android.data.model.FeedItemType;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Generates mock feed data. Items are shuffled for variety on each call.
- * Default tags are pre-assigned so search works immediately, before async AI refinement.
- */
 public class MockFeedDataSource {
 
     private static final String PACKAGE_NAME = "com.wuyiming.singlecolumnadfeed_android";
@@ -20,6 +17,20 @@ public class MockFeedDataSource {
     private static final List<String> COVER_IMAGES = Arrays.asList(
             "ad_cover_1", "ad_cover_2", "ad_cover_3", "ad_cover_4", "ad_cover_5",
             "ad_cover_6", "ad_cover_7", "ad_cover_8", "ad_cover_9", "ad_cover_10"
+    );
+
+    // Pexels 免费商用视频直连 MP4。素材池按"第几个视频卡片"分配，避免所有 VIDEO 卡片播放同一个素材。
+    private static final List<String> VIDEO_URLS = Arrays.asList(
+            "https://videos.pexels.com/video-files/855564/855564-hd_1920_1080_24fps.mp4",
+            "https://videos.pexels.com/video-files/2795171/2795171-hd_1920_1080_25fps.mp4",
+            "https://videos.pexels.com/video-files/3129957/3129957-hd_1920_1080_25fps.mp4",
+            "https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4",
+            "https://videos.pexels.com/video-files/3209828/3209828-hd_1920_1080_25fps.mp4",
+            "https://videos.pexels.com/video-files/3195394/3195394-hd_1920_1080_25fps.mp4",
+            "https://videos.pexels.com/video-files/854671/854671-hd_1920_1080_25fps.mp4",
+            "https://videos.pexels.com/video-files/853919/853919-hd_1920_1080_25fps.mp4",
+            "https://videos.pexels.com/video-files/856787/856787-hd_1920_1080_30fps.mp4",
+            "https://videos.pexels.com/video-files/856973/856973-hd_1920_1080_25fps.mp4"
     );
 
     private static final List<List<String>> TAG_POOL = Arrays.asList(
@@ -37,7 +48,7 @@ public class MockFeedDataSource {
 
     private static final List<String> TITLE_PREFIXES = Arrays.asList(
             "大牌平替化妆盒", "2025新版教材全解", "抑菌洗手液家庭装",
-            "高颜值恒温烧水壶", "雪碧冰爽整箱囤", "天然玉石手串",
+            "高颜值恒温烧水壶", "雪碧冰爽整箱购", "天然玉石手串",
             "轻奢石英手表", "现摘大樱桃顺丰包邮", "赣南脐橙当季鲜摘",
             "网红高颜值随手杯"
     );
@@ -51,28 +62,30 @@ public class MockFeedDataSource {
     );
 
     private static final List<String> DESCRIPTIONS = Arrays.asList(
-            "多层分区大容量｜化妆品收纳一步到位｜小红书万人种草同款",
-            "名师编写考点全覆盖｜同步课堂进度｜随书赠真题卷",
-            "99.9%有效抑菌｜pH中性不伤手｜500ml大容量家庭装",
-            "304不锈钢内胆｜智能恒温保温｜颜值在线百搭各种厨房",
-            "原装正品整箱24罐｜冰镇更过瘾｜烧烤火锅绝配",
-            "天然玉石手工打磨｜温润细腻上手显白｜附精美礼盒",
-            "进口机芯走时精准｜30米生活防水｜商务休闲两不误",
-            "当天采摘当天发货｜颗颗25mm以上大果｜坏果包赔",
-            "赣南核心产区直供｜糖度实测15°+｜皮薄肉厚汁水足",
-            "Tritan材质安心无异味｜500ml黄金容量｜多色可选"
+            "多层分区大容量「化妆品收纳一步到位「小红书万人种草同款",
+            "名师编写考点全覆盖「同步课堂进度「随书赠真题卷",
+            "99.9%有效抑菌「pH中性不伤手「500ml大容量家庭装",
+            "304不锈钢内胆「智能恒温保温「颜值在线百搭各种厨房",
+            "原装正品整箱24罐「冰镇更过瘾「烧烤火锅绝配",
+            "天然玉石手工打磨「温润细腻上手显白「附精美礼盒",
+            "进口机芯走时精准「30米生活防水「商务休闲两不误",
+            "当天采摘当天发货「颗颗25mm以上大果「坏果包赔",
+            "赣南核心产区直供「糖度实测15°+「皮薄肉厚汁水足",
+            "Tritan材质安心无异味「500ml黄金容量「多色可选"
     );
 
+    private static int videoCounter = 0;
+
     public static List<FeedItem> generateFeedItems(int count) {
-        java.util.List<FeedItem> items = new java.util.ArrayList<>();
+        List<FeedItem> items = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             FeedItemType type;
             if (i % 3 == 0) {
-                type = FeedItemType.BIG_IMAGE;
+                type = FeedItemType.IMAGE_BIG;
             } else if (i % 3 == 1) {
-                type = FeedItemType.SMALL_IMAGE;
+                type = FeedItemType.IMAGE_SMALL;
             } else {
-                type = FeedItemType.BIG_IMAGE;
+                type = FeedItemType.VIDEO;
             }
 
             FeedCategory category;
@@ -87,36 +100,35 @@ public class MockFeedDataSource {
             int idx = i % TITLE_PREFIXES.size();
             String prefix = TITLE_PREFIXES.get(idx);
             String suffix = TITLE_SUFFIXES.get(idx);
-            String categoryLabel;
-            if (category == FeedCategory.RECOMMEND) {
-                categoryLabel = "精选";
-            } else if (category == FeedCategory.ECOMMERCE) {
-                categoryLabel = "电商";
-            } else {
-                categoryLabel = "本地";
-            }
+            String categoryLabel = category.getTitle();
             int displayNum = i + 1;
             String title = "[" + categoryLabel + "] " + prefix + " #" + displayNum + suffix;
 
             String coverUrl = "android.resource://" + PACKAGE_NAME + "/drawable/" + COVER_IMAGES.get(i % COVER_IMAGES.size());
+            String videoUrl = null;
+            if (type == FeedItemType.VIDEO) {
+                videoUrl = VIDEO_URLS.get(videoCounter % VIDEO_URLS.size());
+                videoCounter++;
+            }
 
-            // Pre-assign default tags so search works immediately (AI refines later)
             List<String> defaultTags = TAG_POOL.get(idx);
-            AdInsight insight = new AdInsight(null, new java.util.ArrayList<>(defaultTags));
+            AdInsight insight = new AdInsight(null, new ArrayList<>(defaultTags));
 
-            FeedItem item = new FeedItem.Builder()
-                    .id("mock_" + displayNum)
-                    .title(title)
-                    .description(DESCRIPTIONS.get(idx))
-                    .coverUrl(coverUrl)
-                    .feedItemType(type)
-                    .category(category)
-                    .likeCount(128 + (i * 17 % 1000))
-                    .commentCount(12 + (i * 3 % 50))
-                    .isLiked(i % 5 == 0)
-                    .isCollected(i % 7 == 0)
-                    .insight(insight)
-                    .build();
+            FeedItem item = new FeedItem(
+                    "mock_" + displayNum,
+                    title,
+                    DESCRIPTIONS.get(idx),
+                    type,
+                    category,
+                    coverUrl,
+                    videoUrl,
+                    128 + (i * 17 % 1000),
+                    12 + (i * 3 % 50),
+                    i % 5 == 0,
+                    i % 7 == 0,
+                    insight,
+                    System.currentTimeMillis()
+            );
 
             items.add(item);
         }

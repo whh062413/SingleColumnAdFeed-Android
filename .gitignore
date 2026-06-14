@@ -32,3 +32,6 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# AI API configuration
+app/src/main/java/com/wuyiming/singlecolumnadfeed_android/config/AiConfig.java

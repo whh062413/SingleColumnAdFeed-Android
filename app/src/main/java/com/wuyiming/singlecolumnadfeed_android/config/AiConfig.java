@@ -2,36 +2,22 @@ package com.wuyiming.singlecolumnadfeed_android.config;
 
 /**
  * Centralized AI API configuration.
- * Set these values before FeedViewModel initializes to enable cloud AI insight generation.
- * Leave apiKey empty or null to disable AI features.
+ * Set these values to enable cloud AI insight generation and search.
+ * Leave apiKey empty to disable AI features (app will use local fallback).
  */
 public final class AiConfig {
 
-    private AiConfig() {
-        // utility class, not instantiable
-    }
+    private AiConfig() {}
 
-    /**
-     * Your OpenAI-compatible API key.
-     * Set to null or empty string to disable AI insight generation.
-     */
-    public static String apiKey = "sk-d9e1c3fc012c49bdbcc53f8769008043"; // TODO: set your API key here
+    /** Your OpenAI-compatible API key. Fill in to enable AI features. */
+    public static String apiKey = "sk-67731e2e82604162bd5eb2339a438514";
 
-    /**
-     * OpenAI-compatible chat completions endpoint.
-     * Default: OpenAI official endpoint.
-     */
+    /** OpenAI-compatible chat completions endpoint. */
     public static String apiUrl = "https://api.deepseek.com/v1/chat/completions";
 
-    /**
-     * Model name to use.
-     * Default: gpt-4o-mini (fast and cost-effective).
-     */
+    /** Model name to use. */
     public static String model = "deepseek-v4-flash";
 
-    /**
-     * Convenience check 鈥?returns true when AI is properly configured.
-     */
     public static boolean isConfigured() {
         return apiKey != null && !apiKey.isEmpty();
     }

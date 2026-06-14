@@ -1,107 +1,132 @@
 package com.wuyiming.singlecolumnadfeed_android.data.repository;
 
 import android.content.Context;
-
-import com.wuyiming.singlecolumnadfeed_android.data.local.InteractionStore;
-import com.wuyiming.singlecolumnadfeed_android.data.mock.MockDataSource;
-import com.wuyiming.singlecolumnadfeed_android.data.model.FeedCategory;
+import com.wuyiming.singlecolumnadfeed_android.ai.AiInsightGenerator;
+import com.wuyiming.singlecolumnadfeed_android.data.local.FeedInteractionStore;
+import com.wuyiming.singlecolumnadfeed_android.data.mock.MockFeedDataSource;
+import com.wuyiming.singlecolumnadfeed_android.data.model.AdInsight;
 import com.wuyiming.singlecolumnadfeed_android.data.model.FeedItem;
-
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import kotlin.coroutines.Continuation;
 
 public class DefaultFeedRepository implements FeedRepository {
-    private List<FeedItem> allItems;
-    private final InteractionStore interactionStore;
 
-    private static volatile DefaultFeedRepository instance;
+    private final FeedInteractionStore interactionStore;
+    private List<FeedItem> allItems = Collections.emptyList();
+    public volatile AiInsightGenerator aiInsightGenerator = null;
 
-    public static DefaultFeedRepository getInstance(Context context) {
-        if (instance == null) {
-            synchronized (DefaultFeedRepository.class) {
-                if (instance == null) {
-                    instance = new DefaultFeedRepository(context.getApplicationContext());
-                }
-            }
+    public DefaultFeedRepository(Context context) {
+        this(context, new FeedInteractionStore(context));
+    }
+
+    public DefaultFeedRepository(Context context, FeedInteractionStore interactionStore) {
+        this.interactionStore = interactionStore;
+        this.allItems = restorePersistedInteractions(MockFeedDataSource.generateFeedItems(100));
+    }
+
+    @Override
+    public Object loadFeedItems(int page, int pageSize, int refreshSeed, Continuation<? super List<FeedItem>> completion) {
+        if (page == 1) {
+            allItems = restorePersistedInteractions(MockFeedDataSource.generateFeedItems(100));
         }
-        return instance;
-    }
-
-    private DefaultFeedRepository(Context context) {
-        interactionStore = InteractionStore.getInstance(context);
-        allItems = MockDataSource.generateFeedItems(100);
-        syncLikedState();
-    }
-
-    @Override
-    public void reloadData() {
-        allItems = MockDataSource.generateFeedItems(100);
-        syncLikedState();
-    }
-
-    private void syncLikedState() {
-        for (FeedItem item : allItems) {
-            String id = item.getId();
-            if (interactionStore.hasInteraction(id)) {
-                item.setLiked(interactionStore.isLiked(id));
-                item.setCollected(interactionStore.isCollected(id));
-            }
-        }
-    }
-
-    @Override
-    public List<FeedItem> getAllItems() {
-        return new ArrayList<>(allItems);
-    }
-
-    @Override
-    public List<FeedItem> getItemsByCategory(FeedCategory category) {
-        return allItems.stream()
-                .filter(item -> item.getCategory() == category)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<FeedItem> loadMore(int page, int pageSize, FeedCategory category) {
-        List<FeedItem> source = category == null ? allItems : getItemsByCategory(category);
         int start = (page - 1) * pageSize;
-        if (start >= source.size()) return new ArrayList<>();
-        int end = Math.min(start + pageSize, source.size());
-        return new ArrayList<>(source.subList(start, end));
+        if (start >= allItems.size()) {
+            return Collections.emptyList();
+        }
+        int end = Math.min(start + pageSize, allItems.size());
+        return allItems.subList(start, end);
     }
 
     @Override
-    public void toggleLike(String feedId) {
-        boolean newLiked = !interactionStore.isLiked(feedId);
-        interactionStore.setLiked(feedId, newLiked);
-
-        for (FeedItem item : allItems) {
-            if (item.getId().equals(feedId)) {
-                item.setLiked(newLiked);
-                break;
-            }
+    public Object generateAiInsight(FeedItem item, Continuation<? super AdInsight> completion) {
+        AiInsightGenerator gen = aiInsightGenerator;
+        if (gen == null) return null;
+        if (item.getInsight() != null && item.getInsight().getSummary() != null
+                && !item.getInsight().getSummary().isEmpty()) {
+            return null;
+        }
+        try {
+            return gen.generate(item.getTitle(), item.getDescription());
+        } catch (Exception e) {
+            return null;
         }
     }
 
     @Override
-    public void toggleCollect(String feedId) {
-        boolean newCollected = !interactionStore.isCollected(feedId);
-        interactionStore.setCollected(feedId, newCollected);
-
-        for (FeedItem item : allItems) {
-            if (item.getId().equals(feedId)) {
-                item.setCollected(newCollected);
-                break;
+    public FeedItem toggleLike(FeedItem item) {
+        boolean nextLiked = !item.isLiked();
+        interactionStore.setLiked(item.getId(), nextLiked);
+        allItems = mapItems(allItems, it -> {
+            if (it.getId().equals(item.getId())) {
+                return it.toBuilder()
+                        .isLiked(nextLiked)
+                        .likesCount(nextLiked ? it.getLikesCount() + 1 : Math.max(0, it.getLikesCount() - 1))
+                        .build();
             }
-        }
+            return it;
+        });
+        return item.toBuilder()
+                .isLiked(nextLiked)
+                .likesCount(nextLiked ? item.getLikesCount() + 1 : Math.max(0, item.getLikesCount() - 1))
+                .build();
+    }
+
+    @Override
+    public FeedItem toggleCollect(FeedItem item) {
+        boolean nextCollected = !item.isCollected();
+        interactionStore.setCollected(item.getId(), nextCollected);
+        allItems = mapItems(allItems, it -> {
+            if (it.getId().equals(item.getId())) {
+                return it.toBuilder().isCollected(nextCollected).build();
+            }
+            return it;
+        });
+        return item.toBuilder().isCollected(nextCollected).build();
     }
 
     @Override
     public FeedItem getItemById(String feedId) {
-        return allItems.stream()
-                .filter(item -> item.getId().equals(feedId))
-                .findFirst()
-                .orElse(null);
+        for (FeedItem item : allItems) {
+            if (item.getId().equals(feedId)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private List<FeedItem> restorePersistedInteractions(List<FeedItem> items) {
+        return mapItems(items, item -> {
+            boolean restoredLiked = interactionStore.hasLikeOverride(item.getId())
+                    ? interactionStore.isLiked(item.getId())
+                    : item.isLiked();
+            boolean restoredCollected = interactionStore.hasCollectOverride(item.getId())
+                    ? interactionStore.isCollected(item.getId())
+                    : item.isCollected();
+            int likesCount = item.getLikesCount();
+            if (restoredLiked && !item.isLiked()) {
+                likesCount = item.getLikesCount() + 1;
+            } else if (!restoredLiked && item.isLiked()) {
+                likesCount = Math.max(0, item.getLikesCount() - 1);
+            }
+            return item.toBuilder()
+                    .isLiked(restoredLiked)
+                    .isCollected(restoredCollected)
+                    .likesCount(likesCount)
+                    .build();
+        });
+    }
+
+    private static List<FeedItem> mapItems(List<FeedItem> source, ItemMapper mapper) {
+        List<FeedItem> result = new ArrayList<>(source.size());
+        for (FeedItem item : source) {
+            result.add(mapper.map(item));
+        }
+        return result;
+    }
+
+    private interface ItemMapper {
+        FeedItem map(FeedItem item);
     }
 }
